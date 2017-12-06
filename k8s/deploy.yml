@@ -1,0 +1,49 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: appdemo
+  namespace: default
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: appdemo
+    spec:
+      containers:
+      - name: appdemo-app
+        image: joncak/appdemo
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: prod
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://appdemo-mysql.default.svc.cluster.local:3306/appdemo?useUnicode=true&characterEncoding=utf8&useSSL=false
+        - name: JHIPSTER_METRICS_LOGS_ENABLED
+          value: 'true'
+        - name: JHIPSTER_LOGGING_LOGSTASH_ENABLED
+          value: 'true'
+        - name: JHIPSTER_LOGGING_LOGSTASH_HOST
+          value: jhipster-logstash
+        - name: JAVA_OPTS
+          value: " -Xmx256m -Xms256m"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "1"
+        ports:
+        - name: web
+          containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /management/health
+            port: web
+        livenessProbe:
+          httpGet:
+            path: /management/health
+            port: web
+          initialDelaySeconds: 180
+

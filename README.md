@@ -1,118 +1,79 @@
-# jhipsterSampleApplication
-This application was generated using JHipster 4.11.1, you can find documentation and help at [http://www.jhipster.tech/documentation-archive/v4.11.1](http://www.jhipster.tech/documentation-archive/v4.11.1).
+# JHipster generated kubernetes configuration
 
-## Development
+## Preparation
 
-Before you can build this project, you must install and configure the following dependencies on your machine:
+You will need to push your image to a registry. If you have not done so, use the following commands to tag and push the images:
 
-1. [Node.js][]: We use Node to run a development web server and build the project.
-   Depending on your system, you can install Node either from source or as a pre-packaged bundle.
-2. [Yarn][]: We use Yarn to manage Node dependencies.
-   Depending on your system, you can install Yarn either from source or as a pre-packaged bundle.
+```
+$ docker image tag jhipstersampleapplication demo/jhipstersampleapplication
+$ docker push demo/jhipstersampleapplication
+```
 
-After installing Node, you should be able to run the following command to install development tools.
-You will only need to run this command when dependencies change in [package.json](package.json).
+## Deployment
 
-    yarn install
+You can deploy your apps by running:
 
-We use [Gulp][] as our build system. Install the Gulp command-line tool globally with:
+```
+$ kubectl apply -f console
 
-    yarn global add gulp-cli
+$ kubectl apply -f jhipstersampleapplication
+```
 
-Run the following commands in two separate terminals to create a blissful development experience where your browser
-auto-refreshes when files change on your hard drive.
-
-    ./mvnw
-    gulp
-
-[Bower][] is used to manage CSS and JavaScript dependencies used in this application. You can upgrade dependencies by
-specifying a newer version in [bower.json](bower.json). You can also run `bower update` and `bower install` to manage dependencies.
-Add the `-h` flag on any command to see how you can use it. For example, `bower update -h`.
-
-For further instructions on how to develop with JHipster, have a look at [Using JHipster in development][].
+## Exploring your services
 
 
+Use these commands to find your application's IP addresses:
 
-## Building for production
+```
+$ kubectl get svc jhipstersampleapplication
+```
 
-To optimize the jhipsterSampleApplication application for production, run:
+## Scaling your deployments
 
-    ./mvnw -Pprod clean package
+You can scale your apps using 
 
-This will concatenate and minify the client CSS and JavaScript files. It will also modify `index.html` so it references these new files.
-To ensure everything worked, run:
+```
+$ kubectl scale deployment <app-name> --replicas <replica-count>
+```
 
-    java -jar target/*.war
+## zero-downtime deployments
 
-Then navigate to [http://localhost:8080](http://localhost:8080) in your browser.
+The default way to update a running app in kubernetes, is to deploy a new image tag to your docker registry and then deploy it using
 
-Refer to [Using JHipster in production][] for more details.
+```
+$ kubectl set image deployment/<app-name>-app <app-name>=<new-image> 
+```
 
-## Testing
+Using livenessProbes and readinessProbe allows you to tell kubernetes about the state of your apps, in order to ensure availablity of your services. You will need minimum 2 replicas for every app deployment, you want to have zero-downtime deployed. This is because the rolling upgrade strategy first kills a running replica in order to place a new. Running only one replica, will cause a short downtime during upgrades.
 
-To launch your application's tests, run:
+## Monitoring tools
 
-    ./mvnw clean test
+### JHipster console
 
-### Client tests
+Your application logs can be found in JHipster console (powered by Kibana). You can find its service details by
+```
+$ kubectl get svc jhipster-console
+```
 
-Unit tests are run by [Karma][] and written with [Jasmine][]. They're located in [src/test/javascript/](src/test/javascript/) and can be run with:
+Point your browser to an IP of any of your nodes and use the node port described in the output.
 
-    gulp test
 
-UI end-to-end tests are powered by [Protractor][], which is built on top of WebDriverJS. They're located in [src/test/javascript/e2e](src/test/javascript/e2e)
-and can be run by starting Spring Boot in one terminal (`./mvnw spring-boot:run`) and running the tests (`gulp itest`) in a second one.
-### Other tests
 
-Performance tests are run by [Gatling][] and written in Scala. They're located in [src/test/gatling](src/test/gatling) and can be run with:
+## Troubleshooting
 
-    ./mvnw gatling:execute
+> my apps doesn't get pulled, because of 'imagePullBackof'
 
-For more information, refer to the [Running tests page][].
+check the registry your kubernetes cluster is accessing. If you are using a private registry, you should add it to your namespace by `kubectl create secret docker-registry` (check the [docs](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for more info)
 
-## Using Docker to simplify development (optional)
+> my apps get killed, before they can boot up
 
-You can use Docker to improve your JHipster development experience. A number of docker-compose configuration are available in the [src/main/docker](src/main/docker) folder to launch required third party services.
-For example, to start a mysql database in a docker container, run:
+This can occur, if your cluster has low resource (e.g. Minikube). Increase the `initialDelySeconds` value of livenessProbe of your deployments
 
-    docker-compose -f src/main/docker/mysql.yml up -d
+> my apps are starting very slow, despite I have a cluster with many resources
 
-To stop it and remove the container, run:
+The default setting are optimized for middle scale clusters. You are free to increase the JAVA_OPTS environment variable, and resource requests and limits to improve the performance. Be careful!
 
-    docker-compose -f src/main/docker/mysql.yml down
 
-You can also fully dockerize your application and all the services that it depends on.
-To achieve this, first build a docker image of your app by running:
+> my SQL based microservice stuck during liquibase initialization when running multiple replicas
 
-    ./mvnw verify -Pprod dockerfile:build
-
-Then run:
-
-    docker-compose -f src/main/docker/app.yml up -d
-
-For more information refer to [Using Docker and Docker-Compose][], this page also contains information on the docker-compose sub-generator (`jhipster docker-compose`), which is able to generate docker configurations for one or several JHipster applications.
-
-## Continuous Integration (optional)
-
-To configure CI for your project, run the ci-cd sub-generator (`jhipster ci-cd`), this will let you generate configuration files for a number of Continuous Integration systems. Consult the [Setting up Continuous Integration][] page for more information.
-
-[JHipster Homepage and latest documentation]: http://www.jhipster.tech
-[JHipster 4.11.1 archive]: http://www.jhipster.tech/documentation-archive/v4.11.1
-
-[Using JHipster in development]: http://www.jhipster.tech/documentation-archive/v4.11.1/development/
-[Using Docker and Docker-Compose]: http://www.jhipster.tech/documentation-archive/v4.11.1/docker-compose
-[Using JHipster in production]: http://www.jhipster.tech/documentation-archive/v4.11.1/production/
-[Running tests page]: http://www.jhipster.tech/documentation-archive/v4.11.1/running-tests/
-[Setting up Continuous Integration]: http://www.jhipster.tech/documentation-archive/v4.11.1/setting-up-ci/
-
-[Gatling]: http://gatling.io/
-[Node.js]: https://nodejs.org/
-[Yarn]: https://yarnpkg.org/
-[Bower]: http://bower.io/
-[Gulp]: http://gulpjs.com/
-[BrowserSync]: http://www.browsersync.io/
-[Karma]: http://karma-runner.github.io/
-[Jasmine]: http://jasmine.github.io/2.0/introduction.html
-[Protractor]: https://angular.github.io/protractor/
-[Leaflet]: http://leafletjs.com/
-[DefinitelyTyped]: http://definitelytyped.org/
+Somethimes the database changelog lock gets corrupted. You will need to connect to the database using `kubectl exec -it` and remove all lines of liquibases `databasechangeloglock` table.
